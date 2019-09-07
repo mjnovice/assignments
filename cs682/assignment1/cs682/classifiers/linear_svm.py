@@ -20,7 +20,6 @@ def svm_loss_naive(W, X, y, reg):
   - gradient with respect to weights W; an array of same shape as W
   """
   dW = np.zeros(W.shape) # initialize the gradient as zero
-
   # compute the loss and the gradient
   num_classes = W.shape[1]
   num_train = X.shape[0]
@@ -34,11 +33,12 @@ def svm_loss_naive(W, X, y, reg):
       margin = scores[j] - correct_class_score + 1 # note delta = 1
       if margin > 0:
         loss += margin
-
+        dW[:,j] += X[i,:]# X is NxD, while dw is DxC
+        dW[:,y[i]] -= X[i,:]#j is the class being referred
   # Right now the loss is a sum over all training examples, but we want it
   # to be an average instead so we divide by num_train.
   loss /= num_train
-
+  dW /= num_train
   # Add regularization to the loss.
   loss += reg * np.sum(W * W)
 
@@ -69,7 +69,21 @@ def svm_loss_vectorized(W, X, y, reg):
   # Implement a vectorized version of the structured SVM loss, storing the    #
   # result in loss.                                                           #
   #############################################################################
-  pass
+
+  #the following is an array of dim N x C where N is the number in the training 
+  #set and C is the number of classes
+  allscores = X.dot(W)
+  num_train = X.shape[0]
+  correct_class_scores = np.zeros(num_train,dtype=float)
+  for i in range(num_train):
+    correct_class_scores[i] = allscores[i][y[i]]
+  diffs = allscores - correct_class_scores.reshape(num_train,1)
+  margins = diffs + np.ones(allscores.shape) #ones for the delta
+  gtzeromask = margins > 0
+  differences = np.sum(margins[gtzeromask])
+  differences -= num_train #to compensate for the cases where j==yi
+  loss = differences / num_train
+  loss += reg * np.sum(W * W)
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
@@ -84,9 +98,19 @@ def svm_loss_vectorized(W, X, y, reg):
   # to reuse some of the intermediate values that you used to compute the     #
   # loss.                                                                     #
   #############################################################################
-  pass
+  num_classes = W.shape[1]
+  for j in range(num_classes):
+    maskedX = gtzeromask[None,:,j].T*X
+    xsum = np.sum(maskedX,axis=0)
+    dW[:,j] = xsum
+
+  #correct class
+  for i in range(num_train):
+    sumgtthanzero = np.sum(gtzeromask[i,:],axis=0)
+    dW[:,y[i]] -= sumgtthanzero*X[i,:]
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-
+  dW/=num_train
   return loss, dW
