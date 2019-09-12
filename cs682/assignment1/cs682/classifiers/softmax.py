@@ -29,7 +29,7 @@ def softmax_loss_naive(W, X, y, reg):
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -46,14 +46,29 @@ def softmax_loss_vectorized(W, X, y, reg):
   # Initialize the loss and gradient to zero.
   loss = 0.0
   dW = np.zeros_like(W)
-
   #############################################################################
   # TODO: Compute the softmax loss and its gradient using no explicit loops.  #
   # Store the loss in loss and the gradient in dW. If you are not careful     #
   # here, it is easy to run into numeric instability. Don't forget the        #
   # regularization!                                                           #
   #############################################################################
-  pass
+  num_train = X.shape[0]
+  pscores = X.dot(W)
+  pscores_exp = np.exp(pscores)
+  correct_class_pscores_idx = (np.arange(0,num_train,1),(y))
+  correct_class_pscores = pscores_exp[correct_class_pscores_idx]
+  pscores_exp_rowwise_sum = np.sum(pscores_exp, axis=1)
+
+  inner_exp=correct_class_pscores/pscores_exp_rowwise_sum
+  loss = np.sum(-np.log(inner_exp))
+  loss/=num_train
+  loss += reg * np.sum(W * W)
+
+  pscores_exp_rowwise_sum = pscores_exp_rowwise_sum.reshape(num_train,1)
+  pscores_exp_norma = pscores_exp/pscores_exp_rowwise_sum
+
+  dW = X.T.dot(pscores_exp_norma)
+  dW/=num_train
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
