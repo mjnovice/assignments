@@ -75,7 +75,10 @@ class TwoLayerNet(object):
     # Store the result in the scores variable, which should be an array of      #
     # shape (N, C).                                                             #
     #############################################################################
-    pass
+    r1 = X.dot(W1) + b1
+    relu = lambda x: x.clip(min=0)
+    r1_relu = relu(r1)
+    scores = r1_relu.dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -92,7 +95,7 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    pass
+    l1,g1 = softmax_loss_vectorized(X,y,W1)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
