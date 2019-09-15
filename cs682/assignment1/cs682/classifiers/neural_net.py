@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import numpy as np
 import matplotlib.pyplot as plt
+from cs682.classifiers.softmax import *
 
 class TwoLayerNet(object):
   """
@@ -82,7 +83,7 @@ class TwoLayerNet(object):
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
-    
+
     # If the targets are not given then jump out, we're done
     if y is None:
       return scores
@@ -95,7 +96,9 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    l1,g1 = softmax_loss_vectorized(X,y,W1)
+    l2reg_w1 = reg*(np.sum(W1*W1))
+    loss,grad = softmax_loss_vectorized(W2,r1_relu,y,reg,bias=b2)
+    loss += l2reg_w1
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -107,6 +110,11 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
+    pscores_exp_rowwise_sum = np.sum(pscores_exp, axis=1)
+    #dfdq = r1_relu - W2
+    dqdw1 = None
+    dqdb1 = None
+
     pass
     #############################################################################
     #                              END OF YOUR CODE                             #

@@ -36,10 +36,12 @@ def softmax_loss_naive(W, X, y, reg):
     correct_class_exp_score = exp(scores[y[i]])
     sum_exp_scores = 0
     for sc in scores:
-        sum_exp_scores += exp(sc)
+      sum_exp_scores += exp(sc)
     loss += -log(correct_class_exp_score/sum_exp_scores)
     for j in range(num_classes):
-      dW[:,j] += X[i]*((exp(scores[j])/sum_exp_scores) - correct_class_exp_score)
+      dW[:,j] += X[i]*(exp(scores[j])/sum_exp_scores)
+      if j==y[i]:
+        dW[:,j] -= X[i]
   loss /= num_train
   dW /= num_train
   loss += reg * np.sum(W * W)
@@ -50,7 +52,7 @@ def softmax_loss_naive(W, X, y, reg):
   return loss, dW
 
 
-def softmax_loss_vectorized(W, X, y, reg):
+def softmax_loss_vectorized(W, X, y, reg,bias=None):
   """
   Softmax loss function, vectorized version.
 
@@ -67,6 +69,8 @@ def softmax_loss_vectorized(W, X, y, reg):
   #############################################################################
   num_train = X.shape[0] # N
   pscores = X.dot(W) # N x C
+  if bias is not None:
+    pscores+=bias
   pscores_exp = np.exp(pscores) # N x C
   correct_class_pscores_idx = (np.arange(0,num_train,1),(y))
   correct_class_pscores = pscores_exp[correct_class_pscores_idx] # N
@@ -79,9 +83,8 @@ def softmax_loss_vectorized(W, X, y, reg):
 
   pscores_exp_rowwise_sum = pscores_exp_rowwise_sum.reshape(num_train,1) # N
   pscores_exp_norma = pscores_exp/pscores_exp_rowwise_sum # N x C
-  pscores_exp_norma_minus_correct = pscores_exp_norma - correct_class_pscores.reshape(num_train,1)
-
-  dW = X.T.dot(pscores_exp_norma_minus_correct)
+  dW = X.T.dot(pscores_exp_norma) #until this point we only have dL/dWj
+  np.add.at(dW.T,y,-X) #taking care of the dL/dWyi
   dW/=num_train
   #############################################################################
   #                          END OF YOUR CODE                                 #

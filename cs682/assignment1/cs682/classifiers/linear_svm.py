@@ -114,7 +114,7 @@ def svm_loss_vectorized(W, X, y, reg):
   masksum=np.sum(mask,axis=1)
   defs=-masksum[...,np.newaxis]*X
   np.add.at(dW.T,y,defs) #this allows repeated index addition.
-
+  
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
