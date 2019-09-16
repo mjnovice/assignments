@@ -52,7 +52,7 @@ def softmax_loss_naive(W, X, y, reg):
   return loss, dW
 
 
-def softmax_loss_vectorized(W, X, y, reg,bias=None):
+def softmax_loss_vectorized(W, X, y, reg):
   """
   Softmax loss function, vectorized version.
 
@@ -69,8 +69,6 @@ def softmax_loss_vectorized(W, X, y, reg,bias=None):
   #############################################################################
   num_train = X.shape[0] # N
   pscores = X.dot(W) # N x C
-  if bias is not None:
-    pscores+=bias
   pscores_exp = np.exp(pscores) # N x C
   correct_class_pscores_idx = (np.arange(0,num_train,1),(y))
   correct_class_pscores = pscores_exp[correct_class_pscores_idx] # N

@@ -78,8 +78,8 @@ class TwoLayerNet(object):
     #############################################################################
     r1 = X.dot(W1) + b1
     relu = lambda x: x.clip(min=0)
-    r1_relu = relu(r1)
-    scores = r1_relu.dot(W2) + b2
+    q = relu(r1)
+    scores = q.dot(W2) + b2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
@@ -96,26 +96,42 @@ class TwoLayerNet(object):
     # in the variable loss, which should be a scalar. Use the Softmax           #
     # classifier loss.                                                          #
     #############################################################################
-    l2reg_w1 = reg*(np.sum(W1*W1))
-    loss,grad = softmax_loss_vectorized(W2,r1_relu,y,reg,bias=b2)
-    loss += l2reg_w1
+    scores_exp = np.exp(scores)
+    scores_exp_mean_sum = np.sum(scores_exp,axis=1)
+    correct_class_scores_idx = (np.arange(0,N,1),(y))
+    correct_class_scores = scores_exp[correct_class_scores_idx] # N
+    losses_log = -np.log(correct_class_scores/scores_exp_mean_sum)
+    loss = np.sum(losses_log)
+    loss/=N
+    loss += reg*(np.sum(W1*W1)+np.sum(W2*W2))
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
 
     # Backward pass: compute gradients
     grads = {}
-    #############################################################################
+    ###############################################################################
     # TODO: Compute the backward pass, computing the derivatives of the weights #
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
-    #############################################################################
-    pscores_exp_rowwise_sum = np.sum(pscores_exp, axis=1)
-    #dfdq = r1_relu - W2
-    dqdw1 = None
-    dqdb1 = None
+    #############################################################################!
 
-    pass
+    scores_exp_mean = scores_exp / scores_exp_mean_sum.reshape(N,1)
+    scores_exp_mean[correct_class_scores_idx] -= 1 #note this is different
+    #than the one used in softmax.py because the variable used and the matrices
+    #are themselves different
+    dldS = scores_exp_mean/N
+    #W2 -> H x C
+    dldQ = dldS.dot(W2.T)
+    dldW2 = q.T.dot(dldS) + 2*reg*W2
+    dldb2 = np.sum(dldS,axis=0)#.dot(np.ones_like(b2).T)
+    dldQ = dldQ * (q>0) #since relu means gradient cannot exist for negative values in q
+    dldW1 = X.T.dot(dldQ) + 2*reg*W1
+    dldb1 = np.sum(dldQ,axis=0)#dldQ.dot(np.identity(b1.shape[0]))
+    grads["W1"]=dldW1
+    grads["W2"]=dldW2
+    grads["b1"]=dldb1
+    grads["b2"]=dldb2
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
