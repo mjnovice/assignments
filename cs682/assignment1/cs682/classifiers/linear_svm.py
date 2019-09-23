@@ -39,8 +39,10 @@ def svm_loss_naive(W, X, y, reg):
   # to be an average instead so we divide by num_train.
   loss /= num_train
   dW /= num_train
-  # Add regularization to the loss.
+
+  # Add regularization to the loss and its gradient.
   loss += reg * np.sum(W * W)
+  dW += 2*reg*W
 
   #############################################################################
   # TODO:                                                                     #
@@ -110,13 +112,24 @@ def svm_loss_vectorized(W, X, y, reg):
   # loss.                                                                     #
   #############################################################################
   mask=margins>0
+  #the normal case where j!=yi
   dW=X.T.dot(mask)
+
   masksum=np.sum(mask,axis=1)
-  defs=-masksum[...,np.newaxis]*X
-  np.add.at(dW.T,y,defs) #this allows repeated index addition.
-  
+  #axis expansion
+  masksum_exp = masksum[...,np.newaxis]
+
+  #Handling the case where j == yi or the correct classes
+  defs=-masksum_exp*X
+
+  #this allows repeated index addition and this is taking care of
+  #the case of j == yi
+  np.add.at(dW.T,y,defs)
+  dW/=num_train
+  #adding the reg loss gradient
+  dW += 2*reg*W
+
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
-  dW/=num_train
   return loss, dW
