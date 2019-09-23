@@ -44,7 +44,10 @@ def softmax_loss_naive(W, X, y, reg):
         dW[:,j] -= X[i]
   loss /= num_train
   dW /= num_train
+  
+  #adding regularization loss and gradient
   loss += reg * np.sum(W * W)
+  dW += reg * 2 * W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
@@ -84,6 +87,7 @@ def softmax_loss_vectorized(W, X, y, reg):
   dW = X.T.dot(pscores_exp_norma) #until this point we only have dL/dWj
   np.add.at(dW.T,y,-X) #taking care of the dL/dWyi
   dW/=num_train
+  dW += 2*reg*W
   #############################################################################
   #                          END OF YOUR CODE                                 #
   #############################################################################
