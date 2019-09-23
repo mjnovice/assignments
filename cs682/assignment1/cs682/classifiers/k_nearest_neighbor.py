@@ -90,15 +90,18 @@ class KNearestNeighbor(object):
     num_test = X.shape[0]
     num_train = self.X_train.shape[0]
     dists = np.zeros((num_test, num_train))
+    train2 = self.X_train * self.X_train
+    test2 = X * X
+    cross = -2 * X.dot(self.X_train.T)
     for i in range(num_test):
       #######################################################################
       # TODO:                                                               #
       # Compute the l2 distance between the ith test point and all training #
       # points, and store the result in dists[i, :].                        #
       #######################################################################
-      difference = np.subtract(self.X_train,X[i])
-      squares = np.square(difference)
-      squaresums = np.sum(squares,axis=1)
+      #difference = np.subtract(self.X_train,X[i])
+      #squares = np.square(difference)
+      squaresums = np.sum(train2 + test2[i],axis=1) + cross[i,:]
       dists[i,:] = np.sqrt(squaresums)
       #######################################################################
       #                         END OF YOUR CODE                            #
