@@ -90,8 +90,12 @@ class KNearestNeighbor(object):
     num_test = X.shape[0]
     num_train = self.X_train.shape[0]
     dists = np.zeros((num_test, num_train))
+
+    #sqaures of the training set
     train2 = self.X_train * self.X_train
+    #squares of the test set
     test2 = X * X
+    #dot product of the test set and X_train transpose
     cross = -2 * X.dot(self.X_train.T)
     for i in range(num_test):
       #######################################################################
@@ -99,8 +103,6 @@ class KNearestNeighbor(object):
       # Compute the l2 distance between the ith test point and all training #
       # points, and store the result in dists[i, :].                        #
       #######################################################################
-      #difference = np.subtract(self.X_train,X[i])
-      #squares = np.square(difference)
       squaresums = np.sum(train2 + test2[i],axis=1) + cross[i,:]
       dists[i,:] = np.sqrt(squaresums)
       #######################################################################
@@ -117,7 +119,7 @@ class KNearestNeighbor(object):
     """
     num_test = X.shape[0]
     num_train = self.X_train.shape[0]
-    dists = np.zeros((num_test, num_train)) 
+    dists = np.zeros((num_test, num_train))
     #########################################################################
     # TODO:                                                                 #
     # Compute the l2 distance between all test points and all training      #
@@ -130,18 +132,16 @@ class KNearestNeighbor(object):
     # HINT: Try to formulate the l2 distance using matrix multiplication    #
     #       and two broadcast sums.                                         #
     #########################################################################
-    B = self.X_train
     A = X
-    matmul = np.matmul(A, B.T)
-    asum = np.sum(A*A, axis=1)
-    numvs = asum.shape[0]
-    asum_rs = asum.reshape(numvs,1)
-    bsum = np.sum(B*B, axis=1)
-    dists = asum_rs + bsum  - 2*matmul
+    B = self.X_train
+    ABT = A.dot(B.T)
+    A2sum = np.sum(A*A, axis=1,keepdims=True)
+    B2sum = np.sum(B*B, axis=1,keepdims=True)
+    dists = np.sqrt( B2sum.T + A2sum  - 2*ABT)
     #########################################################################
     #                         END OF YOUR CODE                              #
     #########################################################################
-    return np.sqrt(dists)
+    return dists
 
   def predict_labels(self, dists, k=1):
     """
@@ -180,16 +180,16 @@ class KNearestNeighbor(object):
       # label.                                                                #
       #########################################################################
       ldict = {}
-      pred=None
-      predf=0
+      pred = None
+      predf = 0
       for y in closest_y:
         if y not in ldict:
-          ldict[y]=0
-        ldict[y]+=1
-        if ldict[y]>predf or (ldict[y]==predf and pred>y):
-          predf=ldict[y]
-          pred=y
-      y_pred[i]=pred       
+          ldict[y] = 0
+        ldict[y] += 1
+        if ldict[y] > predf or (ldict[y] == predf and pred > y):
+          predf = ldict[y]
+          pred = y
+      y_pred[i] = pred
       #########################################################################
       #                           END OF YOUR CODE                            # 
       #########################################################################
