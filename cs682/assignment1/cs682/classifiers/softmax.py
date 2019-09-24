@@ -41,10 +41,10 @@ def softmax_loss_naive(W, X, y, reg):
     for j in range(num_classes):
       dW[:,j] += X[i]*(exp(scores[j])/sum_exp_scores)
       if j==y[i]:
-        dW[:,j] -= X[i]
+        dW[:,j] -= X[i] #handling the case when j==yi and derivate has an extra -Xi term
   loss /= num_train
   dW /= num_train
-  
+
   #adding regularization loss and gradient
   loss += reg * np.sum(W * W)
   dW += reg * 2 * W
