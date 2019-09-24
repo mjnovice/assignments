@@ -80,23 +80,6 @@ def svm_loss_vectorized(W, X, y, reg):
   loss=np.sum(margins)
   loss/=num_train
   loss += reg*np.sum(W*W)
-  '''
-  #the following is an array of dim N x C where N is the number in the training 
-  #set and C is the number of classes
-  allscores = X.dot(W)
-  num_train = X.shape[0]
-  correct_class_scores = np.zeros(num_train,dtype=float)
-  correct_class_scores_idx = (np.arange(0,num_train,1),(y))
-  correct_class_scores = allscores[correct_class_scores_idx]
-  diffs = allscores - correct_class_scores.reshape(num_train,1)
-  margins = diffs + np.ones(allscores.shape) #ones for the delta
-  gtzeromask = margins > 0
-
-  differences = np.sum(margins.clip(min=0))
-  differences -= num_train #to compensate for the cases where j==yi
-  loss = differences / num_train
-  loss += reg * np.sum(W * W)
-  '''
   #############################################################################
   #                             END OF YOUR CODE                              #
   #############################################################################
