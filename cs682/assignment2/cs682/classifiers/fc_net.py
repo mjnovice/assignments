@@ -177,7 +177,17 @@ class FullyConnectedNet(object):
         # beta2, etc. Scale parameters should be initialized to ones and shift     #
         # parameters should be initialized to zeros.                               #
         ############################################################################
-        pass
+
+        #adding the first and last layers
+        layerds = [input_dim] + hidden_dims + [num_classes]
+        print 
+        #adding the middle layers
+        for i in range(1,len(layerds)):
+            wt = 'W'+str(i)
+            bias = 'b'+str(i)
+            self.params[wt] =  np.random.normal(0.0, weight_scale, (layerds[i-1], layerds[i]) )
+            self.params[bias] =  np.zeros(layerds[i])
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -206,6 +216,23 @@ class FullyConnectedNet(object):
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
 
+    def get_ptags(self, i):
+        return 'W'+str(i),'b'+str(i)
+
+    def affine_bln_relu_dropout_forward(self, x, w, b):
+        #TODO update this by pluggin bln and dropout
+        a, fc_cache = affine_forward(x, w, b)
+        out, relu_cache = relu_forward(a)
+        cache = (fc_cache, relu_cache)
+        return out, cache
+
+
+    def affine_bln_relu_dropout_backward(self, dout, cache):
+        #TODO update this by pluggin bln and dropout
+        fc_cache, relu_cache = cache
+        da = relu_backward(dout, relu_cache)
+        dx, dw, db = affine_backward(da, fc_cache)
+        return dx, dw, db
 
     def loss(self, X, y=None):
         """
@@ -236,7 +263,15 @@ class FullyConnectedNet(object):
         # self.bn_params[1] to the forward pass for the second batch normalization #
         # layer, etc.                                                              #
         ############################################################################
-        pass
+        caches_arr = []
+        current_input = X
+        for i in range(self.num_layers):
+            wt,bias = self.get_ptags(i+1)
+            W = self.params[wt]
+            b = self.params[bias]
+            scores,cache = self.affine_bln_relu_dropout_forward(current_input, W,b)
+            current_input = scores
+            caches_arr.append(cache)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -259,7 +294,17 @@ class FullyConnectedNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        pass
+        loss,dLdScore = softmax_loss(scores,y)
+        gradcurrent=dLdScore
+        regloss = 0
+        for i in range(self.num_layers-1,-1,-1):
+            wt,bias = self.get_ptags(i+1)
+            gradcurrent, dldWcurrent, dldbcurrent = self.affine_bln_relu_dropout_backward(gradcurrent,caches_arr[i])
+            grads[wt] = dldWcurrent + np.sum(self.reg * self.params[wt])
+            grads[bias] = dldbcurrent
+            #adding to reg loss
+            regloss += (0.5 * self.reg * np.sum(self.params[wt]*self.params[wt]))
+        loss += regloss
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
