@@ -180,11 +180,9 @@ class FullyConnectedNet(object):
 
         #adding the first and last layers
         layerds = [input_dim] + hidden_dims + [num_classes]
-        print 
         #adding the middle layers
         for i in range(1,len(layerds)):
-            wt = 'W'+str(i)
-            bias = 'b'+str(i)
+            wt, bias = self.get_ptags(i)
             self.params[wt] =  np.random.normal(0.0, weight_scale, (layerds[i-1], layerds[i]) )
             self.params[bias] =  np.zeros(layerds[i])
 
@@ -265,13 +263,18 @@ class FullyConnectedNet(object):
         ############################################################################
         caches_arr = []
         current_input = X
+        #L-1 layers of affine_bln_relu_dropout
         for i in range(self.num_layers):
             wt,bias = self.get_ptags(i+1)
             W = self.params[wt]
             b = self.params[bias]
-            scores,cache = self.affine_bln_relu_dropout_forward(current_input, W,b)
+            if i==self.num_layers-1:
+                scores,cache = affine_forward(current_input,W,b)
+            else:
+                scores,cache = self.affine_bln_relu_dropout_forward(current_input, W,b)
             current_input = scores
             caches_arr.append(cache)
+
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -299,8 +302,11 @@ class FullyConnectedNet(object):
         regloss = 0
         for i in range(self.num_layers-1,-1,-1):
             wt,bias = self.get_ptags(i+1)
-            gradcurrent, dldWcurrent, dldbcurrent = self.affine_bln_relu_dropout_backward(gradcurrent,caches_arr[i])
-            grads[wt] = dldWcurrent + np.sum(self.reg * self.params[wt])
+            if i==self.num_layers-1:
+                gradcurrent, dldWcurrent, dldbcurrent = affine_backward(gradcurrent,caches_arr[i])
+            else:
+                gradcurrent, dldWcurrent, dldbcurrent = self.affine_bln_relu_dropout_backward(gradcurrent,caches_arr[i])
+            grads[wt] = dldWcurrent + self.reg *  self.params[wt]
             grads[bias] = dldbcurrent
             #adding to reg loss
             regloss += (0.5 * self.reg * np.sum(self.params[wt]*self.params[wt]))
