@@ -245,7 +245,7 @@ class FullyConnectedNet(object):
 
         #dropout layer
         if self.use_dropout:
-            out,drop_cache = dropout_forward(a,bn_params)
+            out, drop_cache = dropout_forward(a,self.dropout_param)
         cache = (fc_cache, norm_cache, relu_cache, drop_cache)
         return out, cache
 
@@ -264,6 +264,9 @@ class FullyConnectedNet(object):
             if norm_type=='layernorm':
                 norm_func = layernorm_backward 
             drelu,dgamma,dbeta =  norm_func(drelu, norm_cache)
+        #dropout layer
+        if self.use_dropout:
+            drelu = dropout_backward(drelu, drop_cache)
         dx,dw,db = affine_backward(drelu, fc_cache)
         return dx, dw, db, dgamma, dbeta
 
@@ -344,8 +347,9 @@ class FullyConnectedNet(object):
                 gradcurrent, dldWcurrent, dldbcurrent = affine_backward(gradcurrent,caches_arr[i])
             else:
                 gradcurrent, dldWcurrent, dldbcurrent,dldgamma, dldbeta = self.affine_norm_relu_dropout_backward(gradcurrent,caches_arr[i],i)
-                grads[gamma] = dldgamma
-                grads[beta] = dldbeta
+                if dldgamma!=None and dldbeta!=None:
+                    grads[gamma] = dldgamma
+                    grads[beta] = dldbeta
  
             grads[wt] = dldWcurrent + self.reg *  self.params[wt]
             grads[bias] = dldbcurrent
