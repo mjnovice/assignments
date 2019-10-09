@@ -182,10 +182,16 @@ class FullyConnectedNet(object):
         layerds = [input_dim] + hidden_dims + [num_classes]
         #adding the middle layers
         for i in range(1,len(layerds)):
-            wt, bias = self.get_ptags(i)
+            wt, bias, gamma, beta = self.get_ptags(i)
             self.params[wt] =  np.random.normal(0.0, weight_scale, (layerds[i-1], layerds[i]) )
             self.params[bias] =  np.zeros(layerds[i])
-
+            if i==len(layerds)-1:
+                continue
+            if not self.normalization in ('batchnorm','layernorm'):
+                #do not initialize gamma and beta if not normalized
+                continue
+            self.params[gamma] = np.ones(layerds[i])
+            self.params[beta] = np.zeros(layerds[i])
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -215,24 +221,51 @@ class FullyConnectedNet(object):
             self.params[k] = v.astype(dtype)
 
     def get_ptags(self, i):
-        return 'W'+str(i),'b'+str(i)
+        it = str(i)
+        return 'W'+it,'b'+it,'gamma'+it,'beta'+it
 
-    def affine_bln_relu_dropout_forward(self, x, w, b):
+    def affine_norm_relu_dropout_forward(self, x, w, b, gamma, beta, layer_id):
         #TODO update this by pluggin bln and dropout
         a, fc_cache = affine_forward(x, w, b)
-        bln,bln_cache = batchnorm_forward(x,w,b)
+
+        #norm_cache, drop_cache
+        norm_cache, drop_cache = None, None
+
+        #normalization layer
+        if len(self.bn_params)>0:
+            bn_params = self.bn_params[layer_id]
+            norm_type = self.normalization 
+            if norm_type=='batchnorm':
+                norm_func = batchnorm_forward
+            if norm_type=='layernorm':
+                norm_func = layernorm_forward 
+            a,norm_cache =  norm_func(a,gamma,beta,bn_params)
+
         out, relu_cache = relu_forward(a)
-        cache = (fc_cache, relu_cache)
+
+        #dropout layer
+        if self.use_dropout:
+            out,drop_cache = dropout_forward(a,bn_params)
+        cache = (fc_cache, norm_cache, relu_cache, drop_cache)
         return out, cache
 
-
-    def affine_bln_relu_dropout_backward(self, dout, cache):
-        #TODO update this by pluggin bln and dropout
-        fc_cache, relu_cache = cache
-        da = relu_backward(dout, relu_cache)
-        dbln, bln_cache = batchnorm_backward_alt(da,relu_cache)
-        dx, dw, db = affine_backward(dbln, bln_cache)
-        return dx, dw, db
+    def affine_norm_relu_dropout_backward(self, dout, cache,layer_id):
+        fc_cache, norm_cache, relu_cache, drop_cache = cache
+        dx, dw, db, dgamma, dbeta = None,None,None,None,None 
+        if self.use_dropout:
+            dout = dropout_backward(dout, drop_cache)
+        drelu = relu_backward(dout, relu_cache)
+        #normalization layer
+        if len(self.bn_params)>0:
+            bn_params = self.bn_params[layer_id]
+            norm_type = self.normalization 
+            if norm_type=='batchnorm':
+                norm_func = batchnorm_backward_alt
+            if norm_type=='layernorm':
+                norm_func = layernorm_backward 
+            drelu,dgamma,dbeta =  norm_func(drelu, norm_cache)
+        dx,dw,db = affine_backward(drelu, fc_cache)
+        return dx, dw, db, dgamma, dbeta
 
     def loss(self, X, y=None):
         """
@@ -267,13 +300,16 @@ class FullyConnectedNet(object):
         current_input = X
         #L-1 layers of affine_bln_relu_dropout
         for i in range(self.num_layers):
-            wt,bias = self.get_ptags(i+1)
+            wt,bias,gamma,beta = self.get_ptags(i+1)
             W = self.params[wt]
             b = self.params[bias]
             if i==self.num_layers-1:
                 scores,cache = affine_forward(current_input,W,b)
             else:
-                scores,cache = self.affine_bln_relu_dropout_forward(current_input, W,b)
+                gamma = None if not gamma in self.params else self.params[gamma]
+                beta = None if not beta in self.params else self.params[beta]
+                scores,cache = self.affine_norm_relu_dropout_forward(current_input, \
+                        W,b,gamma,beta, i)
             current_input = scores
             caches_arr.append(cache)
 
@@ -303,14 +339,17 @@ class FullyConnectedNet(object):
         gradcurrent=dLdScore
         regloss = 0
         for i in range(self.num_layers-1,-1,-1):
-            wt,bias = self.get_ptags(i+1)
+            wt,bias,gamma,beta= self.get_ptags(i+1)
             if i==self.num_layers-1:
                 gradcurrent, dldWcurrent, dldbcurrent = affine_backward(gradcurrent,caches_arr[i])
             else:
-                gradcurrent, dldWcurrent, dldbcurrent = self.affine_bln_relu_dropout_backward(gradcurrent,caches_arr[i])
+                gradcurrent, dldWcurrent, dldbcurrent,dldgamma, dldbeta = self.affine_norm_relu_dropout_backward(gradcurrent,caches_arr[i],i)
+                grads[gamma] = dldgamma
+                grads[beta] = dldbeta
+ 
             grads[wt] = dldWcurrent + self.reg *  self.params[wt]
             grads[bias] = dldbcurrent
-            #adding to reg loss
+           #adding to reg loss
             regloss += (0.5 * self.reg * np.sum(self.params[wt]*self.params[wt]))
         loss += regloss
         ############################################################################
