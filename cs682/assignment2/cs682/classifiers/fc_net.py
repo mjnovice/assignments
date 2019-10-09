@@ -220,6 +220,7 @@ class FullyConnectedNet(object):
     def affine_bln_relu_dropout_forward(self, x, w, b):
         #TODO update this by pluggin bln and dropout
         a, fc_cache = affine_forward(x, w, b)
+        bln,bln_cache = batchnorm_forward(x,w,b)
         out, relu_cache = relu_forward(a)
         cache = (fc_cache, relu_cache)
         return out, cache
@@ -229,7 +230,8 @@ class FullyConnectedNet(object):
         #TODO update this by pluggin bln and dropout
         fc_cache, relu_cache = cache
         da = relu_backward(dout, relu_cache)
-        dx, dw, db = affine_backward(da, fc_cache)
+        dbln, bln_cache = batchnorm_backward_alt(da,relu_cache)
+        dx, dw, db = affine_backward(dbln, bln_cache)
         return dx, dw, db
 
     def loss(self, X, y=None):
