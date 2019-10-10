@@ -517,7 +517,30 @@ def conv_forward_naive(x, w, b, conv_param):
     # TODO: Implement the convolutional forward pass.                         #
     # Hint: you can use the function np.pad for padding.                      #
     ###########################################################################
-    pass
+    N = x.shape[0]
+    C = x.shape[1]
+    H = x.shape[2]
+    W = x.shape[3]
+    F = w.shape[0]
+    C = w.shape[1]
+    HH = w.shape[2]
+    WW = w.shape[3]
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    Hprime = int(1 + (H + 2*pad - HH)/stride)
+    Wprime = int(1 + (W + 2*pad - WW)/stride)
+    out = np.zeros((N, F, Hprime, Wprime),dtype=float)
+    npad=((0,0),(0,0),(pad,pad),(pad,pad))
+    x_padded = np.pad(x,pad_width=npad,mode='constant',constant_values=0)
+    for i in range(N):
+        for f in range(F):
+            for j in range(Hprime):
+                for k in range(Wprime):
+                    xj = j*stride 
+                    xk = k*stride 
+                    segmentA = x_padded[i,:,xj:xj+HH,xk:xk+WW]
+                    segmentB = w[f]
+                    out[i,f,j,k] = np.sum(segmentA*segmentB) + b[f]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -542,7 +565,36 @@ def conv_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the convolutional backward pass.                        #
     ###########################################################################
-    pass
+    x, w, b, conv_param = cache
+    N = x.shape[0]
+    C = x.shape[1]
+    H = x.shape[2]
+    W = x.shape[3]
+    F = w.shape[0]
+    C = w.shape[1]
+    HH = w.shape[2]
+    WW = w.shape[3]
+    pad = conv_param['pad']
+    stride = conv_param['stride']
+    Hprime = int(1 + (H + 2*pad - HH)/stride)
+    Wprime = int(1 + (W + 2*pad - WW)/stride)
+    dx = np.zeros_like(x)
+    dw = np.zeros_like(w)
+    db = np.zeros_like(b)
+    npad=((0,0),(0,0),(pad,pad),(pad,pad))
+    x_padded = np.pad(x,pad_width=npad,mode='constant',constant_values=0)
+    dx_padded = np.zeros_like(x_padded)
+    for i in range(N):
+        for f in range(F):
+            for j in range(Hprime):
+                for k in range(Wprime):
+                    xj = j*stride 
+                    xk = k*stride
+                    segmentA = x_padded[i,:,xj:xj+HH,xk:xk+WW]
+                    dx_padded[i,:,xj:xj+HH,xk:xk+WW] +=  w[f] * dout[i,f,j,k]
+                    dw[f] += segmentA * dout[i,f,j,k]
+                    db[f] += dout[i,f,j,k]
+    dx = dx_padded[:,:,pad:-pad,pad:-pad]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
