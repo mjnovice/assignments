@@ -111,13 +111,13 @@ class ThreeLayerConvNet(object):
         # Remember you can use the functions defined in cs682/fast_layers.py and  #
         # cs682/layer_utils.py in your implementation (already imported).         #
         ############################################################################
-        out1, cache1 = conv_forward_fast(x, W1,b1,conv_param)
+        #print("conv forward fast")
+        out1, cache1 = conv_forward_fast(X, W1,b1,conv_param)
+        #print("relu forward")
         out2, cache2 = relu_forward(out1)
         out3, cache3 = max_pool_forward_fast(out2, pool_param)
-        out4, cache4 = affine_forward(out3, W2, b2 )
-        out5, cache5 = relu_forward(out4)
-        out6, cache6 = affine_forward(out5, W3, b3)
-        scores,dloss = softmax_loss(out6)
+        out4, cache4 = affine_relu_forward(out3, W2, b2 )
+        scores, cache5 = affine_forward(out4, W3, b3)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
@@ -126,6 +126,7 @@ class ThreeLayerConvNet(object):
             return scores
 
         loss, grads = 0, {}
+        loss,dloss = softmax_loss(scores, y)
         ############################################################################
         # TODO: Implement the backward pass for the three-layer convolutional net, #
         # storing the loss and gradients in the loss and grads variables. Compute  #
@@ -136,12 +137,11 @@ class ThreeLayerConvNet(object):
         # automated tests, make sure that your L2 regularization includes a factor #
         # of 0.5 to simplify the expression for the gradient.                      #
         ############################################################################
-        dout5,grads['W3'],grads['b3'] = affine_backward(dloss,cache6)
-        dout4 = relu_backward(dout5,cache5)
-        dout3, grads['W2'], grads['b2'] = affine_backward(dout4, cache4)
-        dout2, = max_pool_backward_fast(dout3, cache3)
-        dout1 = relu_backward(dout2,cache2)
-        _, grads['W1'], grads['b1'] = conv_backward_fast(dout1,cache1)
+        dout5,grads['W3'],grads['b3'] = affine_backward(dloss,cache5)
+        dout4, grads['W2'], grads['b2'] = affine_relu_backward(dout5, cache4)
+        dout3 = max_pool_backward_fast(dout4, cache3)
+        dout2 = relu_backward(dout3,cache2)
+        _, grads['W1'], grads['b1'] = conv_backward_fast(dout2,cache1)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################

@@ -756,7 +756,7 @@ def spatial_batchnorm_backward(dout, cache):
     dx = np.zeros_like(x)
     dgamma = np.zeros_like(gamma)
     dbeta = np.zeros_like(beta)
-    N, C, H, W = dout
+    N, C, H, W = dout.shape
     for c in range(C):
         x_reshaped = np.reshape(x[:,c,:,:], (N*H*W,1))
         dout_reshaped = np.reshape(dout[:,c,:,:], (N*H*W,1))
