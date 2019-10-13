@@ -156,7 +156,7 @@ def max_pool_forward_fast(x, pool_param):
 
 def max_pool_backward_fast(dout, cache):
     """
-    A fast implementation of the backward pass for a max pooling layer.
+    A fast implementati/n of the backward pass for a max pooling layer.
 
     This switches between the reshape method an the im2col method depending on
     which method was used to generate the cache.
