@@ -347,7 +347,7 @@ class FullyConnectedNet(object):
                 gradcurrent, dldWcurrent, dldbcurrent = affine_backward(gradcurrent,caches_arr[i])
             else:
                 gradcurrent, dldWcurrent, dldbcurrent,dldgamma, dldbeta = self.affine_norm_relu_dropout_backward(gradcurrent,caches_arr[i],i)
-                if dldgamma!=None and dldbeta!=None:
+                if dldgamma is not None and dldbeta is not None:
                     grads[gamma] = dldgamma
                     grads[beta] = dldbeta
  
