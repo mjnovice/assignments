@@ -801,16 +801,18 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     ###########################################################################
     N,C,H,W = x.shape
     x_reshaped = np.reshape(x, (N,G,C//G,H,W))
+    varf_reshaped = np.zeros_like(x_reshaped)
     xc_reshaped = np.zeros_like(x_reshaped)
     for g in range(G):
         x_reshaped_g = x_reshaped[:,g,:,:,:]
         sample_mean = np.mean(x_reshaped_g, axis=1,keepdims=True)
-        sample_var = np.var(x_reshaped_g, axis=1,keepdims=True)
+        varf_reshaped[:,g,:,:,:] = np.sqrt(np.var(x_reshaped_g, axis=1,keepdims=True) + eps)
         a=(x_reshaped_g-sample_mean)
-        xc_reshaped[:,g,:,:,:] = (a)/np.sqrt(sample_var+ eps)
+        xc_reshaped[:,g,:,:,:] = (a)/varf_reshaped[:,g,:,:,:]
     xc = np.reshape(xc_reshaped, (N,C,H,W))
+    varf = np.reshape(varf_reshaped, (N,C,H,W))
     out = xc*gamma + beta
-    cache = (x, gamma, beta, G, gn_param)
+    cache = (x,xc,varf,gamma, beta, G, gn_param)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -831,33 +833,37 @@ def spatial_groupnorm_backward(dout, cache):
     - dbeta: Gradient with respect to shift parameter, of shape (C,)
     """
     dx, dgamma, dbeta = None, None, None
-
     ###########################################################################
     # TODO: Implement the backward pass for spatial group normalization.      #
     # This will be extremely similar to the layer norm implementation.        #
     ###########################################################################
-    x, gamma, beta, G, gn_param = cache
+    x,xc,varf_orig,gamma, beta, G, gn_param = cache
     eps = gn_param.get('eps',1e-5)
     N, C, H, W = dout.shape
-    x_reshaped = np.reshape(x,(N,G,C//G,H,W))
-    dldx_reshaped=np.zeros_like(x_reshaped)
-    dout_reshaped = np.reshape(x,(N,G,C//G,H,W))
+    q_orig=xc
+    dfdq_orig = dout*gamma
+    dfdq_reshaped = np.reshape(dfdq_orig,(N,G,C//G,H,W))
+    q_reshaped = np.reshape(q_orig,(N,G,C//G,H,W))
+    varf_reshaped = np.reshape(varf_orig,(N,G,C//G,H,W))
+    dx_reshaped = np.zeros( (N,G,C//G,H,W))
+    for g in range(G):
+        dfdq=dfdq_reshaped[:,g,:,:,:]
+        q=q_reshaped[:,g,:,:,:]
+        varf=varf_reshaped[:,g,:,:,:]
+        n=dfdq.shape[0]
+        dx_reshaped[:,g,:,:,:]=(n*dfdq - np.sum(dfdq,axis=1,keepdims=True)-q*np.sum(dfdq*q,axis=1,keepdims=True))/(n*varf)
+
+    xcdout_tr = np.reshape(np.transpose(xc*dout,(0,2,3,1)),(N*H*W,C))
+    dout_tr = np.reshape(np.transpose(dout,(0,2,3,1)),(N*H*W,C))
+    dx = np.reshape(dx_reshaped,(N,C,H,W))
+    #dbeta = np.sum(dout, axis=(0,2,3),keepdims=True)
     dgamma = np.zeros_like(gamma)
     dbeta = np.zeros_like(beta)
-    for g in range(G):
-        x_ = x_reshaped[:,g,:,:,:]
-        dout_ = dout_reshaped[:,g,:,:,:]
-        mu = np.mean(x_, axis=1,keepdims=True)
-        a = x_ - mu # N x D
-        varf = np.sqrt(np.var(x_, axis=1,keepdims=True)+ eps) #D x 1
-        q = a/varf #N x D
-        n=N
-        #print(g,gamma.shape,gamma[:,g:g+(C//G),:,:].shape)
-        dfdq = dout_*gamma[:,g:g+(C//G),:,:]
-        dldx_reshaped[:,g,:,:,:]=(n*dfdq - np.sum(dfdq,axis=1,keepdims=True)-q*np.sum(dfdq*q,axis=1,keepdims=True))/(n*varf)
-        #dgamma[:,g:g+(C//G),:,:] = np.sum(q * dout_,axis=0)
-        #dbeta[:,g:g+(C//G),:,:] = np.sum(dout_, axis=0)
-    dx = np.reshape(dldx_reshaped, x.shape)
+    dout_trs = np.sum(dout_tr, axis=0)
+    xcdout_trs = np.sum(xcdout_tr,axis=0)
+    for c in range(C):
+        dbeta[:,c,:,:] = dout_trs[c]
+        dgamma[:,c,:,:] = xcdout_trs[c]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
