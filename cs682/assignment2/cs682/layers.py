@@ -850,7 +850,7 @@ def spatial_groupnorm_backward(dout, cache):
         dfdq=dfdq_reshaped[:,g,:,:,:]
         q=q_reshaped[:,g,:,:,:]
         varf=varf_reshaped[:,g,:,:,:]
-        n=dfdq.shape[0]
+        n=dfdq.shape[1]
         dx_reshaped[:,g,:,:,:]=(n*dfdq - np.sum(dfdq,axis=1,keepdims=True)-q*np.sum(dfdq*q,axis=1,keepdims=True))/(n*varf)
 
     xcdout_tr = np.reshape(np.transpose(xc*dout,(0,2,3,1)),(N*H*W,C))
