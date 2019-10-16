@@ -225,10 +225,9 @@ class FullyConnectedNet(object):
         return 'W'+it,'b'+it,'gamma'+it,'beta'+it
 
     def affine_norm_relu_dropout_forward(self, x, w, b, gamma, beta, layer_id):
-        #TODO update this by pluggin bln and dropout
+        #affine layer
         a, fc_cache = affine_forward(x, w, b)
 
-        #norm_cache, drop_cache
         norm_cache, drop_cache = None, None
 
         #normalization layer
@@ -240,7 +239,7 @@ class FullyConnectedNet(object):
             if norm_type=='layernorm':
                 norm_func = layernorm_forward 
             a,norm_cache =  norm_func(a,gamma,beta,bn_params)
-
+        #relu layer
         out, relu_cache = relu_forward(a)
 
         #dropout layer
@@ -252,10 +251,12 @@ class FullyConnectedNet(object):
     def affine_norm_relu_dropout_backward(self, dout, cache,layer_id):
         fc_cache, norm_cache, relu_cache, drop_cache = cache
         dx, dw, db, dgamma, dbeta = None,None,None,None,None 
+        #dropout backward
         if self.use_dropout:
             dout = dropout_backward(dout, drop_cache)
+        #relu backward
         drelu = relu_backward(dout, relu_cache)
-        #normalization layer
+        #normalization layer backward
         if len(self.bn_params)>0:
             bn_params = self.bn_params[layer_id]
             norm_type = self.normalization 
@@ -264,9 +265,7 @@ class FullyConnectedNet(object):
             if norm_type=='layernorm':
                 norm_func = layernorm_backward 
             drelu,dgamma,dbeta =  norm_func(drelu, norm_cache)
-        #dropout layer
-        if self.use_dropout:
-            drelu = dropout_backward(drelu, drop_cache)
+        #affine backward
         dx,dw,db = affine_backward(drelu, fc_cache)
         return dx, dw, db, dgamma, dbeta
 
@@ -353,7 +352,7 @@ class FullyConnectedNet(object):
  
             grads[wt] = dldWcurrent + self.reg *  self.params[wt]
             grads[bias] = dldbcurrent
-           #adding to reg loss
+            #adding to reg loss
             regloss += (0.5 * self.reg * np.sum(self.params[wt]*self.params[wt]))
         loss += regloss
         ############################################################################
