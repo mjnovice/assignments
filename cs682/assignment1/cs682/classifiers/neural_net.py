@@ -178,14 +178,20 @@ class TwoLayerNet(object):
 
       # Simplified batching of the training dataset
       idx = np.random.choice(num_train, batch_size)
+      X_batch = X[idx,:]
+
+      '''
       X_batch = X[start:start+200,:]
-      start +=200
+      idx=range(start,start+200)
+      start +=201
       if start<X.shape[0]:
           start=0
-      print(X_batch.shape)
+      '''
+
       if transforms:
-          for i,image_idx in enumerate(range(start,start+200)):
+          for i,image_idx in enumerate(idx):
               X_batch[i,:] = transforms(image_idx, X_batch[i,:])
+
       X_batch = X_batch.reshape(batch_size, -1)
       y_batch = y[idx]
       #########################################################################
