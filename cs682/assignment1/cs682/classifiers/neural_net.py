@@ -141,7 +141,7 @@ class TwoLayerNet(object):
   def train(self, X, y, X_val, y_val,
             learning_rate=1e-3, learning_rate_decay=0.95,
             reg=5e-6, num_iters=100,
-            batch_size=200, verbose=False):
+            batch_size=200, verbose=False,transforms=None):
     """
     Train this neural network using stochastic gradient descent.
 
@@ -166,7 +166,7 @@ class TwoLayerNet(object):
     loss_history = []
     train_acc_history = []
     val_acc_history = []
-
+    start=0
     for it in range(num_iters):
       X_batch = None
       y_batch = None
@@ -175,8 +175,18 @@ class TwoLayerNet(object):
       # TODO: Create a random minibatch of training data and labels, storing  #
       # them in X_batch and y_batch respectively.                             #
       #########################################################################
+
+      # Simplified batching of the training dataset
       idx = np.random.choice(num_train, batch_size)
-      X_batch = X[idx,:]
+      X_batch = X[start:start+200,:]
+      start +=200
+      if start<X.shape[0]:
+          start=0
+      print(X_batch.shape)
+      if transforms:
+          for i,image_idx in enumerate(range(start,start+200)):
+              X_batch[i,:] = transforms(image_idx, X_batch[i,:])
+      X_batch = X_batch.reshape(batch_size, -1)
       y_batch = y[idx]
       #########################################################################
       #                             END OF YOUR CODE                          #
