@@ -26,6 +26,7 @@ def getKey(ops,objName):
 cache = "cache"
 
 pipeline = [
+    #transforms.CenterCrop(16),
     transforms.ToTensor(),
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))]
 
@@ -35,16 +36,23 @@ from pathlib import Path
 def transformsWithId(image_id,image):
     global pipeline,cache
     ops=pipeline
-    for i,op in enumerate(ops):
+    i=len(ops)-1
+    # start checking for the presence of keys largest first
+    while i>=0:
         key = "/tmp/tensors/" +getKey(ops[:i+1],str(image_id))
-        if cache!=None:
-            if Path(key).is_file():
-                image=torch.load(key)
-                #print("cache hit")
-                continue
+        if Path(key).is_file():
+            image=torch.load(key)
+            break
+        i-=1
+    i+=1
+    while i>=0 and i<len(ops):
+        op=ops[i]
+        key = "/tmp/tensors/" +getKey(ops[:i+1],str(image_id))
         image=op(image)
+        # adding this artificially for an intensive operation
         if cache!=None:
             torch.save(image,key)
+        i+=1
     return image
 
 
@@ -54,7 +62,7 @@ class Cifar5000(torchvision.datasets.CIFAR10):
     def __init__(self, root=None, transforms=None, train=True):
         super().__init__(root, train, download=True)
         self.transforms = transforms
-        self.n_images_per_class = 1000
+        self.n_images_per_class = 5000
         self.n_classes = 10
         self.new2old_indices = self.create_idx_mapping()
 
@@ -168,6 +176,7 @@ def train(trainloader,net):
                       (epoch + 1, i + 1, running_loss / 2000))
                 running_loss = 0.0
     print('Finished Training ')
+
 import time
 s0 = time.time()
 print("Training with no cache")
@@ -182,7 +191,7 @@ s3=time.time()
 print("NoCache: ",s1-s0)
 print("EmptyCache: ",s2-s1)
 print("WarmedCache: ",s3-s2)
-print("percentage gain: ",(2*s2-s3-s1)*100/(s2-s1))
+print("percentage gain: %.2f " %((2*s2-s3-s1)*100/(s2-s1)),"%")
 ########################################################################
 # Let's quickly save our trained model:
 

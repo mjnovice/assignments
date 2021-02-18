@@ -71,16 +71,23 @@ input_size = 32 * 32 * 3
 hidden_size = 50
 num_classes = 10
 
+from torchvision import transforms
 def tonumpy(x):
     return x.numpy()
 
 def transpose(x):
     return x.transpose()
 
-from torchvision import transforms
+def crop(x):
+    print(type(x),x.size)
+    f=transforms.CenterCrop(16)
+    return f(x)
+
 
 pipeline=[
     transforms.ToTensor(),
+    transforms.ToPILImage(),
+    crop,
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
     tonumpy,
     transpose,
@@ -106,7 +113,7 @@ def getKey(ops,objName):
 
 cache={}
 
-def transforms(image_id,image):
+def transforms_(image_id,image):
     global pipeline, cache
     ops=pipeline
     for i,op in enumerate(ops):
@@ -143,7 +150,7 @@ net1 = TwoLayerNet(input_size, hidden_size, num_classes)
 stats = net1.train(X_train, y_train, X_val, y_val,
             num_iters=1000, batch_size=batch_size,
             learning_rate=1e-4, learning_rate_decay=0.95,
-            reg=0.25, verbose=True,transforms=transforms)
+            reg=0.25, verbose=True,transforms=transforms_)
 end_time = time.time()
 # Predict on the validation set
 val_acc = (net1.predict(X_val) == y_val).mean()
@@ -157,7 +164,7 @@ net2 = TwoLayerNet(input_size, hidden_size, num_classes)
 stats = net2.train(X_train, y_train, X_val, y_val,
             num_iters=1000, batch_size=batch_size,
             learning_rate=1e-4, learning_rate_decay=0.95,
-            reg=0.25, verbose=True,transforms=transforms)
+            reg=0.25, verbose=True,transforms=transforms_)
 end_time = time.time()
 
 # Predict on the validation set
